@@ -264,6 +264,7 @@ async function checkBilling(apiKey) {
     return [totalAmount, totalUsage, remaining];
   } catch (error) {
     console.error(error);
+    alert("您的IP无法访问OpenAI，请在OpenAI服务范围内查询。");
     return [null, null, null];
   }
 }
