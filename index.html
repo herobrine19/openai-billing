@@ -226,13 +226,13 @@ function checkOpenAICredit() {
 async function checkBilling(apiKey) {
   // 计算起始日期和结束日期
   const now = new Date();
-  const startDate = new Date(now - 90 * 24 * 60 * 60 * 1000);
+  startDate = new Date(now - 90 * 24 * 60 * 60 * 1000);
   const endDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
   // 设置API请求URL和请求头
   const urlSubscription = 'https://api.openai.com/v1/dashboard/billing/subscription'; // 查是否订阅
   const urlBalance = 'https://api.openai.com/dashboard/billing/credit_grants'; // 查普通账单
-  const urlUsage = `https://api.openai.com/v1/dashboard/billing/usage?start_date=${formatDate(startDate)}&end_date=${formatDate(endDate)}`; // 查使用量
+  urlUsage = `https://api.openai.com/v1/dashboard/billing/usage?start_date=${formatDate(startDate)}&end_date=${formatDate(endDate)}`; // 查使用量
   const headers = {
     "Authorization": "Bearer " + apiKey,
     "Content-Type": "application/json"
@@ -247,11 +247,23 @@ async function checkBilling(apiKey) {
     }
     const subscriptionData = await response.json();
     const totalAmount = subscriptionData.hard_limit_usd;
+    const is_subsrcibed = subscriptionData.has_payment_method;
 
     // 获取已使用量
     response = await fetch(urlUsage, {headers});
-    const usageData = await response.json();
-    const totalUsage = usageData.total_usage / 100;
+    usageData = await response.json();
+    totalUsage = usageData.total_usage / 100;
+
+    // 如果用户绑卡，额度每月会刷新
+    if(is_subsrcibed) {
+        // 获取当前月的第一天日期
+        const day = now.getDate();  // 本月过去的天数
+        startDate = new Date(now - (day - 1) * 24 * 60 * 60 * 1000); // 本月第一天
+        urlUsage = `https://api.openai.com/v1/dashboard/billing/usage?start_date=${formatDate(startDate)}&end_date=${formatDate(endDate)}`; // 查使用量
+        response = await fetch(urlUsage, {headers});
+        usageData = await response.json();
+        totalUsage = usageData.total_usage / 100;
+    }
 
     // 计算剩余额度
     const remaining = totalAmount - totalUsage;
